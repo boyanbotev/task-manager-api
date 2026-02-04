@@ -1,0 +1,6 @@
+@WorkApi_HostAddress = http://localhost:5135
+
+GET {{WorkApi_HostAddress}}/tasks/
+Accept: application/json
+
+###
