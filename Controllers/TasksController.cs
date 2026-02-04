@@ -1,18 +1,27 @@
-using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 
 public class TasksController : Controller
 {
-    public string Index()
+    private TaskManager TaskManager { get; set; }
+    public TasksController(TaskManager taskManager)
     {
-        return "Hello World!";
+        TaskManager = taskManager;
+    }
+    public async Task<string> Index()
+    {
+        var list = await TaskManager.List();
+        return JsonConvert.SerializeObject(list, Formatting.None,
+            new JsonSerializerSettings()
+            {
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+            });
     }
 
     [HttpPost]
     public async Task<IActionResult> Add(string taskName = "", string description = "")
     {
-        await Task.Delay(1000);
-        TaskItem task = new TaskItem(taskName, description);
-        return Ok(task);
+        await TaskManager.Add(taskName, description);
+        return Ok();
     }
 }
