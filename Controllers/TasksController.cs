@@ -12,7 +12,6 @@ public class TasksController : ControllerBase
 
     public async Task<ActionResult> Index()
     {
-        Console.WriteLine("list");
         var list = await TaskService.List();
         return Ok(list);
     }
@@ -20,16 +19,26 @@ public class TasksController : ControllerBase
     [HttpPost("add")]
     public async Task<IActionResult> Add([FromBody] TaskItem task)
     {
-        Console.WriteLine("Adding task");
-        await TaskService.Add(task);
-        return Ok();
+        var result = await TaskService.Add(task);
+        if (result == AddResult.AlreadyExists)
+        {
+            return Conflict();
+        }
+        if (result == AddResult.Invalid)
+        {
+            return BadRequest();
+        }
+        return Created();
     }
 
     [HttpDelete("remove")]
     public async Task<IActionResult> Remove([FromBody] DeleteRequest deleteRequest)
     {
-        Console.WriteLine("Removing task");
-        await TaskService.Remove(deleteRequest.Name);
-        return Ok();
+        var result = await TaskService.Remove(deleteRequest.Name);
+        if (result == RemoveResult.NotFound)
+        {
+            return NotFound();
+        }
+        return NoContent();
     }
 }

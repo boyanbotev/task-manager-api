@@ -1,30 +1,42 @@
 public interface ITaskService
 {
-    Task Add(TaskItem task);
-    Task Remove(string taskName);
+    Task<AddResult> Add(TaskItem task);
+    Task<RemoveResult> Remove(string taskName);
     Task<TaskItem[]> List();
+}
+
+public enum RemoveResult
+{
+    Success,
+    NotFound
+}
+
+public enum AddResult
+{
+    Success,
+    AlreadyExists,
+    Invalid
 }
 
 public class TaskService : ITaskService {
     private List<TaskItem> tasks = new List<TaskItem>();
 
-    public async Task Add(TaskItem task)
+    public async Task<AddResult> Add(TaskItem task)
     {
         if (string.IsNullOrEmpty(task.Name) || string.IsNullOrEmpty(task.Description))
         {
-            return;
-            // TODO: error handling
+            return AddResult.Invalid;
         }
 
         if (tasks.Any(t => t.Name == task.Name))
         {
-            return;
-            // TODO: error handling
+            return AddResult.AlreadyExists;
         }
 
         await Task.Delay(2000);
 
         tasks.Add(task);
+        return AddResult.Success;
     }
 
     public async Task<TaskItem[]> List()
@@ -33,14 +45,15 @@ public class TaskService : ITaskService {
         return tasks.ToArray();
     }
 
-    public async Task Remove(string taskName) 
+    public async Task<RemoveResult> Remove(string taskName) 
     {
         if (!tasks.Any(t => t.Name == taskName))
         {
-            return;
+            return RemoveResult.NotFound;
         }
         await Task.Delay(2000);
 
         tasks.RemoveAll(task => task.Name == taskName);
+        return RemoveResult.Success;
     }
 }
