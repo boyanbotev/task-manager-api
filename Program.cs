@@ -1,7 +1,11 @@
 var builder = WebApplication.CreateBuilder(args);
 
-var TaskManager = new TaskManager();
-builder.Services.AddControllers();
+var TaskManager = new TaskService();
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+});
+
 builder.Services.AddSingleton(TaskManager);
 
 var app = builder.Build();
