@@ -17,7 +17,7 @@ public class TasksController : ControllerBase
     }
 
     [HttpPost("add")]
-    public async Task<IActionResult> Add([FromBody] TaskItem task)
+    public async Task<IActionResult> Add([FromBody] AddRequest task)
     {
         var result = await TaskService.Add(task);
         if (result == AddResult.AlreadyExists)

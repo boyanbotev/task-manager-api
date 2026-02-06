@@ -1,6 +1,7 @@
+using Microsoft.EntityFrameworkCore;
 public interface ITaskService
 {
-    Task<AddResult> Add(TaskItem task);
+    Task<AddResult> Add(AddRequest task);
     Task<RemoveResult> Remove(string taskName);
     Task<TaskItem[]> List();
 }
@@ -19,41 +20,52 @@ public enum AddResult
 }
 
 public class TaskService : ITaskService {
-    private List<TaskItem> tasks = new List<TaskItem>();
+    private readonly TaskContext db;
 
-    public async Task<AddResult> Add(TaskItem task)
+    public TaskService(TaskContext db)
+    {
+        this.db = db;
+    }
+
+    public async Task<AddResult> Add(AddRequest task)
     {
         if (string.IsNullOrEmpty(task.Name) || string.IsNullOrEmpty(task.Description))
         {
             return AddResult.Invalid;
         }
 
-        if (tasks.Any(t => t.Name == task.Name))
+        var dbTask = await db.Tasks.FirstOrDefaultAsync(t => t.Name == task.Name);
+        if (dbTask != null)
         {
             return AddResult.AlreadyExists;
         }
 
-        await Task.Delay(2000);
+        await db.Tasks.AddAsync(new TaskItem
+        {
+            Name = task.Name,
+            Description = task.Description
+        });
+        await db.SaveChangesAsync();
 
-        tasks.Add(task);
         return AddResult.Success;
     }
 
     public async Task<TaskItem[]> List()
     {
-        await Task.Delay(1000);
+        var tasks = await db.Tasks.ToListAsync();
         return tasks.ToArray();
     }
 
     public async Task<RemoveResult> Remove(string taskName) 
     {
-        if (!tasks.Any(t => t.Name == taskName))
+        var task = await db.Tasks.FirstOrDefaultAsync(t => t.Name == taskName);
+        if (task == null)
         {
             return RemoveResult.NotFound;
         }
-        await Task.Delay(2000);
 
-        tasks.RemoveAll(task => task.Name == taskName);
+        db.Tasks.Remove(task);
+        await db.SaveChangesAsync();
         return RemoveResult.Success;
     }
 }

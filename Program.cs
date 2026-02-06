@@ -1,12 +1,16 @@
 var builder = WebApplication.CreateBuilder(args);
 
-var TaskManager = new TaskService();
+var db = new TaskContext();
+db.Database.EnsureCreated();
+
+var taskService = new TaskService(db);
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
 });
 
-builder.Services.AddSingleton(TaskManager);
+builder.Services.AddSingleton(taskService);
+builder.Services.AddDbContext<TaskContext>();
 
 var app = builder.Build();
 
