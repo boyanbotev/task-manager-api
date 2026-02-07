@@ -21,38 +21,41 @@ public enum AddResult
 
 public class TaskService : ITaskService {
     private readonly TaskContext db;
+    private readonly ILogger<TaskService> logger;
 
-    public TaskService(TaskContext db)
+    public TaskService(TaskContext db, ILogger<TaskService> logger)
     {
         this.db = db;
+        this.logger = logger;
     }
 
     public async Task<AddResult> Add(AddRequest task)
     {
-        if (string.IsNullOrEmpty(task.Name) || string.IsNullOrEmpty(task.Description))
-        {
-            return AddResult.Invalid;
-        }
-
-        var dbTask = await db.Tasks.FirstOrDefaultAsync(t => t.Name == task.Name);
-        if (dbTask != null)
-        {
-            return AddResult.AlreadyExists;
-        }
-
         await db.Tasks.AddAsync(new TaskItem
         {
             Name = task.Name,
             Description = task.Description
         });
-        await db.SaveChangesAsync();
+
+        try {
+            await db.SaveChangesAsync();
+        } catch (DbUpdateException) {
+            logger.LogError("Task already exists: {task}", task.Name);
+            return AddResult.AlreadyExists;
+        }
+
+        logger.LogInformation("Task added: {task}", task.Name);
 
         return AddResult.Success;
     }
 
     public async Task<TaskItem[]> List()
     {
-        var tasks = await db.Tasks.ToListAsync();
+        var tasks = await db.Tasks
+            .AsNoTracking()
+            .ToListAsync();
+
+        logger.LogInformation("Tasks loaded: {tasks}", tasks.Count);
         return tasks.ToArray();
     }
 
@@ -66,6 +69,7 @@ public class TaskService : ITaskService {
 
         db.Tasks.Remove(task);
         await db.SaveChangesAsync();
+        logger.LogInformation("Task removed: {task}", task.Name);
         return RemoveResult.Success;
     }
 }

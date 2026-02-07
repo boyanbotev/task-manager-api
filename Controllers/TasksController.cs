@@ -20,25 +20,31 @@ public class TasksController : ControllerBase
     public async Task<IActionResult> Add([FromBody] AddRequest task)
     {
         var result = await TaskService.Add(task);
-        if (result == AddResult.AlreadyExists)
+        switch (result)
         {
-            return Conflict();
+            case AddResult.Success:
+                return Created();
+            case AddResult.AlreadyExists:
+                return Conflict();
+            case AddResult.Invalid:
+                return BadRequest();
+            default:
+                return StatusCode(500);
         }
-        if (result == AddResult.Invalid)
-        {
-            return BadRequest();
-        }
-        return Created();
     }
 
     [HttpDelete("remove")]
     public async Task<IActionResult> Remove([FromBody] DeleteRequest deleteRequest)
     {
         var result = await TaskService.Remove(deleteRequest.Name);
-        if (result == RemoveResult.NotFound)
+        switch (result)
         {
-            return NotFound();
+            case RemoveResult.Success:
+                return NoContent();
+            case RemoveResult.NotFound:
+                return NotFound();
+            default:
+                return StatusCode(500);
         }
-        return NoContent();
     }
 }

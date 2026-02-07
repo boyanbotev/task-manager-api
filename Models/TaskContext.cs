@@ -14,4 +14,13 @@ public class TaskContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder options)
         => options.UseSqlite($"Data Source={DbPath}");
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<TaskItem>()
+            .HasIndex(t => t.Name)
+            .IsUnique();
+    }
 }
