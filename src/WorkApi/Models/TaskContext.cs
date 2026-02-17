@@ -5,7 +5,7 @@ public class TaskContext : DbContext
     public DbSet<TaskItem> Tasks { get; set; }
 
     public string DbPath { get; }
-    public TaskContext()
+    public TaskContext(DbContextOptions<TaskContext> options) : base(options)
     {
         var folder = Environment.SpecialFolder.LocalApplicationData;
         var path = Environment.GetFolderPath(folder);
@@ -13,7 +13,11 @@ public class TaskContext : DbContext
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder options)
-        => options.UseSqlite($"Data Source={DbPath}");
+    {
+        if (!options.IsConfigured) {
+            options.UseSqlite($"Data Source={DbPath}");
+        }
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
