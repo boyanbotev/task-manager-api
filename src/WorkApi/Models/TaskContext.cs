@@ -1,8 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
-public class TaskContext : DbContext
+namespace WorkApi.Models;
+public class TaskContext : IdentityDbContext
 {
     public DbSet<TaskItem> Tasks { get; set; }
+    public DbSet<User> Users { get; set; }
 
     public string DbPath { get; }
     public TaskContext(DbContextOptions<TaskContext> options) : base(options)
@@ -26,5 +29,15 @@ public class TaskContext : DbContext
         modelBuilder.Entity<TaskItem>()
             .HasIndex(t => t.Name)
             .IsUnique();
+
+        modelBuilder.Entity<TaskItem>()
+            .HasOne(p => p.User)
+            .WithMany(u => u.Tasks)
+            .HasForeignKey(p => p.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // modelBuilder.Entity<User>()
+        //     .HasIndex(u => u.UserName)
+        //     .IsUnique();
     }
 }

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WorkApi.Models;
 
@@ -10,9 +11,11 @@ using WorkApi.Models;
 namespace WorkApi.Migrations
 {
     [DbContext(typeof(TaskContext))]
-    partial class TaskContextModelSnapshot : ModelSnapshot
+    [Migration("20260219153343_RegisterRequest")]
+    partial class RegisterRequest
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.20");
@@ -232,7 +235,7 @@ namespace WorkApi.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("UserId")
+                    b.Property<string>("userId")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
@@ -241,7 +244,7 @@ namespace WorkApi.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("userId");
 
                     b.ToTable("Tasks");
                 });
@@ -306,13 +309,13 @@ namespace WorkApi.Migrations
 
             modelBuilder.Entity("WorkApi.Models.TaskItem", b =>
                 {
-                    b.HasOne("WorkApi.Models.User", "User")
+                    b.HasOne("WorkApi.Models.User", "user")
                         .WithMany("Tasks")
-                        .HasForeignKey("UserId")
+                        .HasForeignKey("userId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("User");
+                    b.Navigation("user");
                 });
 
             modelBuilder.Entity("WorkApi.Models.User", b =>

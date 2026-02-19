@@ -1,9 +1,13 @@
 using Microsoft.EntityFrameworkCore;
+using WorkApi.Models;
+
+namespace WorkApi.Services;
+
 public interface ITaskService
 {
     Task<AddResult> Add(AddRequest task);
     Task<RemoveResult> Remove(string taskName);
-    Task<TaskItem[]> List();
+    Task<TaskItem[]> List(string userId);
 }
 
 public enum RemoveResult
@@ -31,10 +35,13 @@ public class TaskService : ITaskService {
 
     public async Task<AddResult> Add(AddRequest task)
     {
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == task.UserId);
+
         await db.Tasks.AddAsync(new TaskItem
         {
             Name = task.Name,
-            Description = task.Description
+            Description = task.Description,
+            User = user
         });
 
         try {
@@ -49,10 +56,10 @@ public class TaskService : ITaskService {
         return AddResult.Success;
     }
 
-    public async Task<TaskItem[]> List()
+    public async Task<TaskItem[]> List(string userId)
     {
         var tasks = await db.Tasks
-            .AsNoTracking()
+            .Where(t => t.UserId== userId)
             .ToListAsync();
 
         logger.LogInformation("Tasks loaded: {tasks}", tasks.Count);

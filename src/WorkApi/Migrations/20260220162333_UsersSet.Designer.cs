@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WorkApi.Models;
 
@@ -10,9 +11,11 @@ using WorkApi.Models;
 namespace WorkApi.Migrations
 {
     [DbContext(typeof(TaskContext))]
-    partial class TaskContextModelSnapshot : ModelSnapshot
+    [Migration("20260220162333_UsersSet")]
+    partial class UsersSet
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.20");
@@ -306,13 +309,11 @@ namespace WorkApi.Migrations
 
             modelBuilder.Entity("WorkApi.Models.TaskItem", b =>
                 {
-                    b.HasOne("WorkApi.Models.User", "User")
+                    b.HasOne("WorkApi.Models.User", null)
                         .WithMany("Tasks")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("WorkApi.Models.User", b =>
