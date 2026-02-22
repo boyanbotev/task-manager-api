@@ -1,50 +1,33 @@
 using Microsoft.AspNetCore.Mvc;
 using WorkApi.Models;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
 using WorkApi.Services;
-using System.IdentityModel.Tokens.Jwt;
-
 
 [ApiController]
 [Route("tasks")]
 [Authorize]
 public class TasksController : ControllerBase
 {
-    private TaskService TaskService { get; set; }
-    private readonly UserManager<User> userManager;
-    public TasksController(TaskService taskService, UserManager<User> userManager, Settings settings)
+    private readonly ITaskService taskService;
+    public TasksController(ITaskService taskService)
     {
-        TaskService = taskService;
-        this.userManager = userManager;
+        this.taskService = taskService;
     }
 
+    [HttpGet]
     public async Task<ActionResult> Index()
     {
         var userId = User.FindFirst("UserId")?.Value;
-        Console.WriteLine("userId: " + userId);
-
-        foreach (var claim in User.Claims)
-        {
-            Console.WriteLine($"Key: {claim.Type}, Value: {claim.Value}");
-        }
-
-        var tasks = await TaskService.List(userId);
+        var tasks = await taskService.List(userId);
         return Ok(tasks);
     }
 
-    [HttpPost("add")]
+    [HttpPost]
     public async Task<IActionResult> Add([FromBody] AddRequest task)
     {
-        Console.WriteLine("users: " + userManager.Users.ToList().Count);
-        foreach (var u in userManager.Users.ToList())
-        {
-            Console.WriteLine("userName: " + u.UserName);
-            Console.WriteLine("id: " + u.Id);
-        }
-
-        var result = await TaskService.Add(task);
+        var userId = User.FindFirst("UserId")?.Value;
+        task.UserId = userId;
+        var result = await taskService.Add(task);
         switch (result)
         {
             case AddResult.Success:
@@ -58,10 +41,11 @@ public class TasksController : ControllerBase
         }
     }
 
-    [HttpDelete("remove")]
-    public async Task<IActionResult> Remove([FromBody] DeleteRequest deleteRequest)
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Remove([FromRoute] int id)
     {
-        var result = await TaskService.Remove(deleteRequest.Name);
+        string userId = User.FindFirst("UserId")?.Value;
+        var result = await taskService.Remove(id, userId);
         switch (result)
         {
             case RemoveResult.Success:

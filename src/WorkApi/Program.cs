@@ -25,8 +25,8 @@ builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
 });
 
-builder.Services.AddScoped<TaskService>();
-builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<ITaskService, TaskService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddDbContext<TaskContext>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

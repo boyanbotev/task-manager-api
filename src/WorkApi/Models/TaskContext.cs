@@ -35,9 +35,5 @@ public class TaskContext : IdentityDbContext
             .WithMany(u => u.Tasks)
             .HasForeignKey(p => p.UserId)
             .OnDelete(DeleteBehavior.Cascade);
-
-        // modelBuilder.Entity<User>()
-        //     .HasIndex(u => u.UserName)
-        //     .IsUnique();
     }
 }

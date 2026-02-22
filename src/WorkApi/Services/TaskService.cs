@@ -6,7 +6,7 @@ namespace WorkApi.Services;
 public interface ITaskService
 {
     Task<AddResult> Add(AddRequest task);
-    Task<RemoveResult> Remove(string taskName);
+    Task<RemoveResult> Remove(int id, string userId);
     Task<TaskItem[]> List(string userId);
 }
 
@@ -58,7 +58,7 @@ public class TaskService : ITaskService {
 
     public async Task<TaskItem[]> List(string userId)
     {
-        var tasks = await db.Tasks
+        var tasks = await db.Tasks.AsNoTracking()
             .Where(t => t.UserId== userId)
             .ToListAsync();
 
@@ -66,9 +66,9 @@ public class TaskService : ITaskService {
         return tasks.ToArray();
     }
 
-    public async Task<RemoveResult> Remove(string taskName) 
+    public async Task<RemoveResult> Remove(int id, string userId) 
     {
-        var task = await db.Tasks.FirstOrDefaultAsync(t => t.Name == taskName);
+        var task = await db.Tasks.FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
         if (task == null)
         {
             return RemoveResult.NotFound;
