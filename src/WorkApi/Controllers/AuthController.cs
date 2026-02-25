@@ -7,9 +7,9 @@ using WorkApi.Services;
 [Route("auth")]
 public class AuthController : ControllerBase
 {
-    private readonly AuthService authService;
+    private readonly IAuthService authService;
 
-    public AuthController(UserManager<User> userManager, AuthService authService)
+    public AuthController(UserManager<User> userManager, IAuthService authService)
     {
         this.authService = authService;
     }

@@ -56,4 +56,23 @@ public class TasksController : ControllerBase
                 return StatusCode(500);
         }
     }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateRequest task)
+    {
+        string userId = User.FindFirst("UserId")?.Value;
+        task.UserId = userId;
+        var result = await taskService.Update(id, task);
+        switch (result)
+        {
+            case UpdateResult.Success:
+                return NoContent();
+            case UpdateResult.NotFound:
+                return NotFound();
+            case UpdateResult.Invalid:
+                return BadRequest();
+            default:
+                return StatusCode(500);
+        }
+    }
 }

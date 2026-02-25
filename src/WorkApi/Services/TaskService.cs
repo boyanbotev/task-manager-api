@@ -8,6 +8,7 @@ public interface ITaskService
     Task<AddResult> Add(AddRequest task);
     Task<RemoveResult> Remove(int id, string userId);
     Task<TaskItem[]> List(string userId);
+    Task<UpdateResult> Update(int id, UpdateRequest task);
 }
 
 public enum RemoveResult
@@ -20,6 +21,13 @@ public enum AddResult
 {
     Success,
     AlreadyExists,
+    Invalid
+}
+
+public enum UpdateResult
+{
+    Success,
+    NotFound,
     Invalid
 }
 
@@ -78,5 +86,21 @@ public class TaskService : ITaskService {
         await db.SaveChangesAsync();
         logger.LogInformation("Task removed: {task}", task.Name);
         return RemoveResult.Success;
+    }
+
+    public async Task<UpdateResult> Update(int id, UpdateRequest task)
+    {
+        var taskItem = await db.Tasks.FirstOrDefaultAsync(t => t.Id == id && t.UserId == task.UserId);
+        if (taskItem == null)
+        {
+            return UpdateResult.NotFound;
+        }
+        logger.LogInformation($"Changing task name from {taskItem.Name} to {task.Name}");
+        logger.LogInformation($"Changing task description from {taskItem.Description} to {task.Description}");
+
+        taskItem.Name = task.Name;
+        taskItem.Description = task.Description;
+        await db.SaveChangesAsync();
+        return UpdateResult.Success;
     }
 }
