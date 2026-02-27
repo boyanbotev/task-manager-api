@@ -15,19 +15,19 @@ public class TasksController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult> Index()
+    public async Task<ActionResult> Index(CancellationToken cancellationToken)
     {
         var userId = User.FindFirst("UserId")?.Value;
-        var tasks = await taskService.List(userId);
+        var tasks = await taskService.List(userId, cancellationToken);
         return Ok(tasks);
     }
 
     [HttpPost]
-    public async Task<IActionResult> Add([FromBody] AddRequest task)
+    public async Task<IActionResult> Add([FromBody] AddRequest task, CancellationToken cancellationToken)
     {
         var userId = User.FindFirst("UserId")?.Value;
         task.UserId = userId;
-        var result = await taskService.Add(task);
+        var result = await taskService.Add(task, cancellationToken);
         switch (result)
         {
             case AddResult.Success:
@@ -42,10 +42,10 @@ public class TasksController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Remove([FromRoute] int id)
+    public async Task<IActionResult> Remove([FromRoute] int id, CancellationToken cancellationToken)
     {
         string userId = User.FindFirst("UserId")?.Value;
-        var result = await taskService.Remove(id, userId);
+        var result = await taskService.Remove(id, userId, cancellationToken);
         switch (result)
         {
             case RemoveResult.Success:
@@ -58,11 +58,11 @@ public class TasksController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateRequest task)
+    public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateRequest task, CancellationToken cancellationToken)
     {
         string userId = User.FindFirst("UserId")?.Value;
         task.UserId = userId;
-        var result = await taskService.Update(id, task);
+        var result = await taskService.Update(id, task, cancellationToken);
         switch (result)
         {
             case UpdateResult.Success:

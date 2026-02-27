@@ -5,10 +5,10 @@ namespace WorkApi.Services;
 
 public interface ITaskService
 {
-    Task<AddResult> Add(AddRequest task);
-    Task<RemoveResult> Remove(int id, string userId);
-    Task<TaskItem[]> List(string userId);
-    Task<UpdateResult> Update(int id, UpdateRequest task);
+    Task<AddResult> Add(AddRequest task, CancellationToken cancellationToken);
+    Task<RemoveResult> Remove(int id, string userId, CancellationToken cancellationToken);
+    Task<TaskItem[]> List(string userId, CancellationToken cancellationToken);
+    Task<UpdateResult> Update(int id, UpdateRequest task, CancellationToken cancellationToken);
 }
 
 public enum RemoveResult
@@ -41,19 +41,19 @@ public class TaskService : ITaskService {
         this.logger = logger;
     }
 
-    public async Task<AddResult> Add(AddRequest task)
+    public async Task<AddResult> Add(AddRequest task, CancellationToken cancellationToken)
     {
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == task.UserId);
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == task.UserId, cancellationToken);
 
         await db.Tasks.AddAsync(new TaskItem
         {
             Name = task.Name,
             Description = task.Description,
             User = user
-        });
+        }, cancellationToken);
 
         try {
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(cancellationToken);
         } catch (DbUpdateException) {
             logger.LogError("Task already exists: {task}", task.Name);
             return AddResult.AlreadyExists;
@@ -64,33 +64,33 @@ public class TaskService : ITaskService {
         return AddResult.Success;
     }
 
-    public async Task<TaskItem[]> List(string userId)
+    public async Task<TaskItem[]> List(string userId, CancellationToken cancellationToken)
     {
         var tasks = await db.Tasks.AsNoTracking()
             .Where(t => t.UserId== userId)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         logger.LogInformation("Tasks loaded: {tasks}", tasks.Count);
         return tasks.ToArray();
     }
 
-    public async Task<RemoveResult> Remove(int id, string userId) 
+    public async Task<RemoveResult> Remove(int id, string userId, CancellationToken cancellationToken) 
     {
-        var task = await db.Tasks.FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
+        var task = await db.Tasks.FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId, cancellationToken);
         if (task == null)
         {
             return RemoveResult.NotFound;
         }
 
         db.Tasks.Remove(task);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(cancellationToken);
         logger.LogInformation("Task removed: {task}", task.Name);
         return RemoveResult.Success;
     }
 
-    public async Task<UpdateResult> Update(int id, UpdateRequest task)
+    public async Task<UpdateResult> Update(int id, UpdateRequest task, CancellationToken cancellationToken)
     {
-        var taskItem = await db.Tasks.FirstOrDefaultAsync(t => t.Id == id && t.UserId == task.UserId);
+        var taskItem = await db.Tasks.FirstOrDefaultAsync(t => t.Id == id && t.UserId == task.UserId, cancellationToken);
         if (taskItem == null)
         {
             return UpdateResult.NotFound;
@@ -100,7 +100,7 @@ public class TaskService : ITaskService {
 
         taskItem.Name = task.Name;
         taskItem.Description = task.Description;
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(cancellationToken);
         return UpdateResult.Success;
     }
 }
