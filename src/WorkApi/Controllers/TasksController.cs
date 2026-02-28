@@ -26,8 +26,7 @@ public class TasksController : ControllerBase
     public async Task<IActionResult> Add([FromBody] AddRequest task, CancellationToken cancellationToken)
     {
         var userId = User.FindFirst("UserId")?.Value;
-        task.UserId = userId;
-        var result = await taskService.Add(task, cancellationToken);
+        var result = await taskService.Add(userId, task, cancellationToken);
         switch (result)
         {
             case AddResult.Success:
@@ -61,8 +60,7 @@ public class TasksController : ControllerBase
     public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateRequest task, CancellationToken cancellationToken)
     {
         string userId = User.FindFirst("UserId")?.Value;
-        task.UserId = userId;
-        var result = await taskService.Update(id, task, cancellationToken);
+        var result = await taskService.Update(id, userId, task, cancellationToken);
         switch (result)
         {
             case UpdateResult.Success:

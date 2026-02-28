@@ -5,10 +5,10 @@ namespace WorkApi.Services;
 
 public interface ITaskService
 {
-    Task<AddResult> Add(AddRequest task, CancellationToken cancellationToken);
+    Task<AddResult> Add(string userId, AddRequest task, CancellationToken cancellationToken);
     Task<RemoveResult> Remove(int id, string userId, CancellationToken cancellationToken);
     Task<TaskItem[]> List(string userId, CancellationToken cancellationToken);
-    Task<UpdateResult> Update(int id, UpdateRequest task, CancellationToken cancellationToken);
+    Task<UpdateResult> Update(int id, string userId, UpdateRequest task, CancellationToken cancellationToken);  
 }
 
 public enum RemoveResult
@@ -41,9 +41,9 @@ public class TaskService : ITaskService {
         this.logger = logger;
     }
 
-    public async Task<AddResult> Add(AddRequest task, CancellationToken cancellationToken)
+    public async Task<AddResult> Add(string userId,AddRequest task, CancellationToken cancellationToken)
     {
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == task.UserId, cancellationToken) as WorkApi.Models.User;
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken) as WorkApi.Models.User;
 
         await db.Tasks.AddAsync(new TaskItem
         {
@@ -88,9 +88,9 @@ public class TaskService : ITaskService {
         return RemoveResult.Success;
     }
 
-    public async Task<UpdateResult> Update(int id, UpdateRequest task, CancellationToken cancellationToken)
+    public async Task<UpdateResult> Update(int id, string userId, UpdateRequest task, CancellationToken cancellationToken)
     {
-        var taskItem = await db.Tasks.FirstOrDefaultAsync(t => t.Id == id && t.UserId == task.UserId, cancellationToken);
+        var taskItem = await db.Tasks.FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId, cancellationToken);
         if (taskItem == null)
         {
             return UpdateResult.NotFound;

@@ -5,7 +5,7 @@ using WorkApi.Models;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using Microsoft.AspNetCore.Identity;
+using System.Net;
 
 public class TasksControllerIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
 {
@@ -22,7 +22,6 @@ public class TasksControllerIntegrationTests : IClassFixture<WebApplicationFacto
         {
             builder.ConfigureServices(services =>
             {
-                // 2. Remove the existing DbContextOptions from Program.cs
                 var descriptor = services.SingleOrDefault(
                     d => d.ServiceType == typeof(DbContextOptions<TaskContext>));
 
@@ -31,17 +30,13 @@ public class TasksControllerIntegrationTests : IClassFixture<WebApplicationFacto
                     services.Remove(descriptor);
                 }
 
-                // 3. Add the Test DbContext
                 services.AddDbContext<TaskContext>(options =>
                     options.UseSqlite(dbConnectionString));
-                
-                // DO NOT call BuildServiceProvider() here.
             });
         });
 
         _client = _factory.CreateClient();
 
-        // 4. Initialize the Test Database using the factory's actual Service Provider
         using (var scope = _factory.Services.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<TaskContext>();
@@ -54,9 +49,9 @@ public class TasksControllerIntegrationTests : IClassFixture<WebApplicationFacto
     public async Task ShouldGetEmptyListWhenNoTasksExist()
     {
         string token = await GetAuthToken("testuser", "Password123!");
-        _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        var client = CreateAuthenticatedClient(token);
 
-        var response = await _client.GetAsync("/tasks");
+        var response = await client.GetAsync("/tasks");
 
         response.EnsureSuccessStatusCode();
         var tasks = await response.Content.ReadFromJsonAsync<List<TaskItem>>();
@@ -68,40 +63,149 @@ public class TasksControllerIntegrationTests : IClassFixture<WebApplicationFacto
     public async Task ShouldAddAndRemoveTask()
     {
         string token = await GetAuthToken("testuser", "Password123!");
-        _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-        string userId = GetUserId("testuser");
+        var client = CreateAuthenticatedClient(token);
 
         var taskRequest = new AddRequest 
         { 
-            UserId = userId, 
             Name = "Test Task", 
             Description = "Description" 
         };
 
         var content = new StringContent(JsonSerializer.Serialize(taskRequest), Encoding.UTF8, "application/json");
 
-        var response = await _client.PostAsync("/tasks", content);
+        var response = await client.PostAsync("/tasks", content);
 
         response.EnsureSuccessStatusCode();
 
-        var tasksResponse = await _client.GetAsync("/tasks");
+        var tasksResponse = await client.GetAsync("/tasks");
         tasksResponse.EnsureSuccessStatusCode();
         var tasks = await tasksResponse.Content.ReadFromJsonAsync<List<TaskItem>>();
         Assert.Single(tasks);
         Assert.Equal("Test Task", tasks.First().Name);
 
-        var deleteResponse = await _client.DeleteAsync("/tasks/1");
+        var deleteResponse = await client.DeleteAsync("/tasks/1");
 
         deleteResponse.EnsureSuccessStatusCode();
-        Assert.Equal(System.Net.HttpStatusCode.NoContent, deleteResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
-        var tasksResponse2 = await _client.GetAsync("/tasks");
-        tasksResponse.EnsureSuccessStatusCode();
+        var tasksResponse2 = await client.GetAsync("/tasks");
+        tasksResponse2.EnsureSuccessStatusCode();
         var tasks2 = await tasksResponse2.Content.ReadFromJsonAsync<List<TaskItem>>();
         Assert.Empty(tasks2);
     }
 
+    [Fact]
+    public async Task ShouldUpdateTask()
+    {
+        string token = await GetAuthToken("testuser", "Password123!");
+        var client = CreateAuthenticatedClient(token);
+
+        var taskRequest = new AddRequest 
+        { 
+            Name = "Test Task", 
+            Description = "Description" 
+        };
+
+        var content = new StringContent(JsonSerializer.Serialize(taskRequest), Encoding.UTF8, "application/json");
+
+        var response = await client.PostAsync("/tasks", content);
+
+        response.EnsureSuccessStatusCode();
+
+        var tasksResponse = await client.GetAsync("/tasks");
+        tasksResponse.EnsureSuccessStatusCode();
+        var tasks = await tasksResponse.Content.ReadFromJsonAsync<List<TaskItem>>();
+        Assert.Single(tasks);
+        Assert.Equal("Test Task", tasks.First().Name);
+
+        var updateRequest = new UpdateRequest 
+        { 
+            Name = "Updated Task", 
+            Description = "Updated Description" 
+        };
+        var updateContent = new StringContent(JsonSerializer.Serialize(updateRequest), Encoding.UTF8, "application/json");
+        var updateResponse = await client.PutAsync($"/tasks/{tasks.First().Id}", updateContent);
+        updateResponse.EnsureSuccessStatusCode();
+
+        var tasksResponse2 = await client.GetAsync("/tasks");
+        tasksResponse2.EnsureSuccessStatusCode();
+        var tasks2 = await tasksResponse2.Content.ReadFromJsonAsync<List<TaskItem>>();
+        Assert.Single(tasks2);
+        Assert.Equal("Updated Task", tasks2.First().Name);
+    }
+
+    [Fact]
+    public async Task ShouldNotUpdateOtherUserTasks()
+    {
+        string token = await GetAuthToken("testuser", "Password123!");
+        string token2 = await GetAuthToken("testuser2", "Password123!");
+        var client = CreateAuthenticatedClient(token);
+        var client2 = CreateAuthenticatedClient(token2);
+
+        var addRequest = new AddRequest 
+        { 
+            Name = "Task We Should Not Update",
+            Description = "Description" 
+        };
+        var content = new StringContent(JsonSerializer.Serialize(addRequest), Encoding.UTF8, "application/json");
+        var response = await client.PostAsync("/tasks", content);
+        response.EnsureSuccessStatusCode();
+        
+        var tasksResponse = await client.GetAsync("/tasks");
+        tasksResponse.EnsureSuccessStatusCode();
+        var tasks = await tasksResponse.Content.ReadFromJsonAsync<List<TaskItem>>();
+
+        var existingTaskId = tasks.Find(t => t.Name == addRequest.Name).Id;
+
+        var updateRequest = new UpdateRequest 
+        { 
+            Name = "Updated Task", 
+            Description = "Updated Description"
+        };
+
+        var updateContent = new StringContent(JsonSerializer.Serialize(updateRequest), Encoding.UTF8, "application/json");
+        var updateResponse = await client2.PutAsync($"/tasks/{existingTaskId}", updateContent);
+        Assert.Equal(HttpStatusCode.NotFound, updateResponse.StatusCode);
+
+        var tasksResponse2 = await client.GetAsync("/tasks");
+        tasksResponse2.EnsureSuccessStatusCode();
+        var tasks2 = await tasksResponse2.Content.ReadFromJsonAsync<List<TaskItem>>();
+
+        var unchangedTask = tasks2.FirstOrDefault(t => t.Id == existingTaskId);
+        Assert.NotNull(unchangedTask);
+        Assert.Equal("Task We Should Not Update", unchangedTask.Name);
+    }
+
+    [Fact]
+    public async Task ShouldRejectAnonymousRequests()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/tasks");
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ShouldRejectDuplicateTaskNames()
+    {
+        string token = await GetAuthToken("testuser", "Password123!");
+        var client = CreateAuthenticatedClient(token);
+
+        var taskRequest = new AddRequest 
+        { 
+            Name = "Do Not Duplicate",
+            Description = "Description" 
+        };
+
+        var content = new StringContent(JsonSerializer.Serialize(taskRequest), Encoding.UTF8, "application/json");
+
+        var response = await client.PostAsync("/tasks", content);
+        response.EnsureSuccessStatusCode();
+
+        var response2 = await client.PostAsync("/tasks", content);
+
+        Assert.Equal(HttpStatusCode.Conflict, response2.StatusCode);
+    }
 
     private async Task<string> GetAuthToken(string username, string password)
     {
@@ -117,14 +221,11 @@ public class TasksControllerIntegrationTests : IClassFixture<WebApplicationFacto
         return loginResult["token"];
     }
 
-    private string GetUserId(string username)
+    private HttpClient CreateAuthenticatedClient(string token)
     {
-        using (var scope = _factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
-            var user = userManager.FindByNameAsync(username).Result;
-            return user.Id;
-        }
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        return client;
     }
 
     public void Dispose()
