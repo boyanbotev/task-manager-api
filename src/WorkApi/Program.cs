@@ -11,9 +11,12 @@ var settings = new Settings();
 builder.Configuration.Bind("Settings", settings);
 builder.Services.AddSingleton(settings);
 
-var contextOptions = new DbContextOptionsBuilder<TaskContext>().UseSqlite().Options;
-var db = new TaskContext(contextOptions);
-db.Database.EnsureCreated();
+var folder = Environment.SpecialFolder.LocalApplicationData;
+var path = Environment.GetFolderPath(folder);
+var dbPath = System.IO.Path.Join(path, "tasks.db");
+
+builder.Services.AddDbContext<TaskContext>(options =>
+    options.UseSqlite($"Data Source={dbPath}"));
 
 builder.Services.AddIdentityCore<User>(options => 
     options.SignIn.RequireConfirmedAccount = true)
@@ -27,7 +30,6 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 
 builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddDbContext<TaskContext>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -46,12 +48,26 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<TaskContext>();
+    db.Database.Migrate();
+}
+
+// tests
+// if I use Database.Migrate() running tests fails with: 'no such table: __EFMigrationsHistory'.
+// if I use Database.EnsureCreated() running tests fails with: 'no such table: AspNetUsers'.
+// if I have nothing here running tests fails with: 'no such table: AspNetUsers'.
+// i cannot understand what is going on.
+// perhaps the test is just setup incorrectly and I need to copy from github
+
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseHttpsRedirection();
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+app.MapControllers();
 
 app.Run();
+
+public partial class Program { }

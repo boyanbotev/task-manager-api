@@ -43,7 +43,7 @@ public class TaskService : ITaskService {
 
     public async Task<AddResult> Add(AddRequest task, CancellationToken cancellationToken)
     {
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == task.UserId, cancellationToken);
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == task.UserId, cancellationToken) as WorkApi.Models.User;
 
         await db.Tasks.AddAsync(new TaskItem
         {
