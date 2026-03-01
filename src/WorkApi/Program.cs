@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Text;
 using WorkApi.Models;
 using WorkApi.Services;
+using WorkApi.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,13 +55,7 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 }
 
-// tests
-// if I use Database.Migrate() running tests fails with: 'no such table: __EFMigrationsHistory'.
-// if I use Database.EnsureCreated() running tests fails with: 'no such table: AspNetUsers'.
-// if I have nothing here running tests fails with: 'no such table: AspNetUsers'.
-// i cannot understand what is going on.
-// perhaps the test is just setup incorrectly and I need to copy from github
-
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
