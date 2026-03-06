@@ -83,7 +83,7 @@ public class TasksControllerIntegrationTests : IClassFixture<WebApplicationFacto
         Assert.Single(tasks);
         Assert.Equal("Test Task", tasks.First().Name);
 
-        var deleteResponse = await client.DeleteAsync("/tasks/1");
+        var deleteResponse = await client.DeleteAsync($"/tasks/{tasks.First().Id}");
 
         deleteResponse.EnsureSuccessStatusCode();
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
